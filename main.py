@@ -15,7 +15,7 @@ async def animate_spaceship(canvas, row, column, frame_1, frame_2):
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, frame_1, negative=True)
 
-        # row, column, _ = read_controls(canvas)
+        row, column, _ = read_controls(canvas, row, column)
 
         draw_frame(canvas, row, column, frame_2)
         canvas.refresh()
