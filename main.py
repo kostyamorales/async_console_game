@@ -2,12 +2,14 @@ import time
 import curses
 import asyncio
 from random import randint, choice
-from curses_tools import draw_frame, read_controls
+from curses_tools import draw_frame, read_controls, get_frame_size
 
 TIC_TIMEOUT = 0.1
 
 
 async def animate_spaceship(canvas, row, column, frame_1, frame_2):
+    max_row, max_column = canvas.getmaxyx()
+    frame_rows, frame_columns = get_frame_size(frame_1)
     while True:
         draw_frame(canvas, row, column, frame_1)
         canvas.refresh()
@@ -15,7 +17,13 @@ async def animate_spaceship(canvas, row, column, frame_1, frame_2):
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, frame_1, negative=True)
 
-        row, column, _ = read_controls(canvas, row, column)
+        new_row, new_column, _ = read_controls(canvas, row, column)
+
+        if 0 < new_row < max_row - frame_rows:
+            row = new_row
+
+        if 0 < new_column < max_column - frame_columns:
+            column = new_column
 
         draw_frame(canvas, row, column, frame_2)
         canvas.refresh()
