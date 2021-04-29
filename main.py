@@ -3,33 +3,25 @@ import curses
 import asyncio
 from random import randint, choice
 from curses_tools import draw_frame, read_controls, get_frame_size
+import itertools
 
 TIC_TIMEOUT = 0.1
 
 
-async def animate_spaceship(canvas, row, column, frame_1, frame_2):
-    max_row, max_column = canvas.getmaxyx()
-    frame_rows, frame_columns = get_frame_size(frame_1)
-    while True:
-        draw_frame(canvas, row, column, frame_1)
-        canvas.refresh()
-        time.sleep(0.2)
+async def animate_spaceship(canvas, row, column, frames):
+    canvas_rows, canvas_columns = canvas.getmaxyx()
+    frame_rows, frame_columns = get_frame_size(frames[0])
+
+    for frame in itertools.cycle(frames):
+        draw_frame(canvas, row, column, frame)
         await asyncio.sleep(0)
-        draw_frame(canvas, row, column, frame_1, negative=True)
+        draw_frame(canvas, row, column, frame, negative=True)
 
         new_row, new_column, _ = read_controls(canvas, row, column)
-
-        if 0 < new_row < max_row - frame_rows:
+        if 0 < new_row < canvas_rows - frame_rows:
             row = new_row
-
-        if 0 < new_column < max_column - frame_columns:
+        if 0 < new_column < canvas_columns - frame_columns:
             column = new_column
-
-        draw_frame(canvas, row, column, frame_2)
-        canvas.refresh()
-        time.sleep(0.2)
-        await asyncio.sleep(0)
-        draw_frame(canvas, row, column, frame_2, negative=True)
 
 
 async def blink(canvas, row, column, symbol='*'):
@@ -107,7 +99,13 @@ def draw(canvas):
     coroutines.append(coroutine_fire)
 
     frame_1, frame_2 = read_rocket_frames()
-    coroutine_spaceship = animate_spaceship(canvas, height / 2, width / 2, frame_1, frame_2)
+    frames = [
+        frame_1,
+        frame_1,
+        frame_2,
+        frame_2
+    ]
+    coroutine_spaceship = animate_spaceship(canvas, height / 2, width / 2, frames)
     coroutines.append(coroutine_spaceship)
 
     while True:
