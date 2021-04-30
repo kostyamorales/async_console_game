@@ -8,6 +8,22 @@ import itertools
 TIC_TIMEOUT = 0.1
 
 
+async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
+    """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
+    rows_number, columns_number = canvas.getmaxyx()
+
+    # column = max(column, 0)
+    # column = min(column, columns_number - 1)
+
+    row = 0
+
+    while row < rows_number:
+        draw_frame(canvas, row, column, garbage_frame)
+        await asyncio.sleep(0)
+        draw_frame(canvas, row, column, garbage_frame, negative=True)
+        row += speed
+
+
 async def animate_spaceship(canvas, row, column, frames):
     canvas_rows, canvas_columns = canvas.getmaxyx()
     frame_rows, frame_columns = get_frame_size(frames[0])
@@ -74,11 +90,21 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
 
 
 def read_rocket_frames():
-    with open("files/rocket_frame_1.txt", "r") as my_file:
+    with open('files/rocket_frame_1.txt', 'r') as my_file:
         frame_1 = my_file.read()
-    with open("files/rocket_frame_2.txt", "r") as my_file:
+    with open('files/rocket_frame_2.txt', 'r') as my_file:
         frame_2 = my_file.read()
     return frame_1, frame_2
+
+
+def read_trash():
+    with open('files/trash_small.txt', 'r') as my_file:
+        trash_1 = my_file.read()
+    with open('files/trash_large.txt', 'r') as my_file:
+        trash_2 = my_file.read()
+    with open('files/trash_xl.txt', 'r') as my_file:
+        trash_3 = my_file.read()
+    return trash_1, trash_2, trash_3
 
 
 def draw(canvas):
@@ -88,7 +114,7 @@ def draw(canvas):
     height, width = canvas.getmaxyx()
     coroutines = []
 
-    for i in range(50):
+    for i in range(150):
         row = randint(1, height - 2)
         column = randint(1, width - 2)
         symbol = choice('+*.:')
@@ -107,6 +133,16 @@ def draw(canvas):
     ]
     coroutine_spaceship = animate_spaceship(canvas, height / 2, width / 2, frames)
     coroutines.append(coroutine_spaceship)
+
+    trash_1, trash_2, trash_3 = read_trash()
+    garbage_frames = [
+        trash_1,
+        trash_2,
+        trash_3
+    ]
+    column = randint(0, width - 1)
+    coroutine_garbage = fly_garbage(canvas, column, choice(garbage_frames))
+    coroutines.append(coroutine_garbage)
 
     while True:
         for coroutine in coroutines.copy():
