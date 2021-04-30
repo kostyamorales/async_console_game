@@ -6,14 +6,21 @@ from curses_tools import draw_frame, read_controls, get_frame_size
 import itertools
 
 TIC_TIMEOUT = 0.1
+COROUTINES = []
+
+
+async def fill_orbit_with_garbage(canvas, width, frames):
+    while True:
+        column = randint(0, width - 1)
+        coroutine_garbage = fly_garbage(canvas, column, choice(frames))
+        COROUTINES.append(coroutine_garbage)
+        for i in range(5):
+            await asyncio.sleep(0)
 
 
 async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
     rows_number, columns_number = canvas.getmaxyx()
-
-    # column = max(column, 0)
-    # column = min(column, columns_number - 1)
 
     row = 0
 
@@ -112,17 +119,16 @@ def draw(canvas):
     canvas.nodelay(True)
     canvas.border()
     height, width = canvas.getmaxyx()
-    coroutines = []
 
     for i in range(150):
         row = randint(1, height - 2)
         column = randint(1, width - 2)
         symbol = choice('+*.:')
         coroutine = blink(canvas, row, column, symbol)
-        coroutines.append(coroutine)
+        COROUTINES.append(coroutine)
 
     coroutine_fire = fire(canvas, height / 2, width / 2)
-    coroutines.append(coroutine_fire)
+    COROUTINES.append(coroutine_fire)
 
     frame_1, frame_2 = read_rocket_frames()
     frames = [
@@ -132,7 +138,7 @@ def draw(canvas):
         frame_2
     ]
     coroutine_spaceship = animate_spaceship(canvas, height / 2, width / 2, frames)
-    coroutines.append(coroutine_spaceship)
+    COROUTINES.append(coroutine_spaceship)
 
     trash_1, trash_2, trash_3 = read_trash()
     garbage_frames = [
@@ -140,16 +146,15 @@ def draw(canvas):
         trash_2,
         trash_3
     ]
-    column = randint(0, width - 1)
-    coroutine_garbage = fly_garbage(canvas, column, choice(garbage_frames))
-    coroutines.append(coroutine_garbage)
+    coroutine_garbage = fill_orbit_with_garbage(canvas, width, garbage_frames)
+    COROUTINES.append(coroutine_garbage)
 
     while True:
-        for coroutine in coroutines.copy():
+        for coroutine in COROUTINES.copy():
             try:
                 coroutine.send(None)
             except StopIteration:
-                coroutines.remove(coroutine)
+                COROUTINES.remove(coroutine)
         canvas.refresh()
         time.sleep(TIC_TIMEOUT)
 
