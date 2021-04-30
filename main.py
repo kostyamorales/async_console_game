@@ -5,6 +5,7 @@ from random import randint, choice
 from curses_tools import draw_frame, read_controls, get_frame_size
 import itertools
 from utils import sleep
+from physics import update_speed
 
 TIC_TIMEOUT = 0.1
 COROUTINES = []
@@ -34,17 +35,21 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
 async def animate_spaceship(canvas, row, column, frames):
     canvas_rows, canvas_columns = canvas.getmaxyx()
     frame_rows, frame_columns = get_frame_size(frames[0])
+    row_speed = column_speed = 0
 
     for frame in itertools.cycle(frames):
         draw_frame(canvas, row, column, frame)
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, frame, negative=True)
 
-        new_row, new_column, _ = read_controls(canvas, row, column)
-        if 0 < new_row < canvas_rows - frame_rows:
-            row = new_row
-        if 0 < new_column < canvas_columns - frame_columns:
-            column = new_column
+        new_row, new_column, _ = read_controls(canvas)
+        row_speed, column_speed = update_speed(row_speed, column_speed, new_row, new_column)
+
+        if 0 < row + row_speed < canvas_rows - frame_rows:
+            row += row_speed
+
+        if 0 < column + column_speed < canvas_columns - frame_columns:
+            column += column_speed
 
 
 async def blink(canvas, row, column, symbol='*'):

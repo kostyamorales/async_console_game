@@ -5,9 +5,9 @@ UP_KEY_CODE = 259
 DOWN_KEY_CODE = 258
 
 
-def read_controls(canvas, row, column):
+def read_controls(canvas):
     space_pressed = False
-
+    row = column = 0
     while True:
         pressed_key_code = canvas.getch()
 
@@ -16,16 +16,16 @@ def read_controls(canvas, row, column):
             break
 
         if pressed_key_code == UP_KEY_CODE:
-            row -= 1
+            row = - 1
 
         if pressed_key_code == DOWN_KEY_CODE:
-            row += 1
+            row = 1
 
         if pressed_key_code == RIGHT_KEY_CODE:
-            column += 1
+            column = 1
 
         if pressed_key_code == LEFT_KEY_CODE:
-            column -= 1
+            column = - 1
 
         if pressed_key_code == SPACE_KEY_CODE:
             space_pressed = True
