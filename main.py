@@ -42,14 +42,16 @@ async def animate_spaceship(canvas, row, column, frames):
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, frame, negative=True)
 
-        new_row, new_column, _ = read_controls(canvas)
+        new_row, new_column, flag_fire = read_controls(canvas)
         row_speed, column_speed = update_speed(row_speed, column_speed, new_row, new_column)
 
         if 0 < row + row_speed < canvas_rows - frame_rows:
             row += row_speed
-
         if 0 < column + column_speed < canvas_columns - frame_columns:
             column += column_speed
+
+        if flag_fire:
+            COROUTINES.append(fire(canvas, row, column + 2))
 
 
 async def blink(canvas, row, column, symbol='*'):
@@ -127,9 +129,6 @@ def draw(canvas):
         symbol = choice('+*.:')
         coroutine = blink(canvas, row, column, symbol)
         COROUTINES.append(coroutine)
-
-    coroutine_fire = fire(canvas, height / 2, width / 2)
-    COROUTINES.append(coroutine_fire)
 
     frame_1, frame_2 = read_rocket_frames()
     frames = [
