@@ -6,9 +6,11 @@ from curses_tools import draw_frame, read_controls, get_frame_size
 import itertools
 from utils import sleep
 from physics import update_speed
+from obstacles import Obstacle, show_obstacles
 
 TIC_TIMEOUT = 0.1
 COROUTINES = []
+OBSTACLES = []
 
 
 async def fill_orbit_with_garbage(canvas, width, frames):
@@ -22,14 +24,20 @@ async def fill_orbit_with_garbage(canvas, width, frames):
 async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
     rows_number, columns_number = canvas.getmaxyx()
+    garbage_frame_rows, garbage_frame_columns = get_frame_size(garbage_frame)
 
     row = 0
+    obstacle = Obstacle(row, column, garbage_frame_rows, garbage_frame_columns)
+    OBSTACLES.append(obstacle)
+    coroutine_obstacle = show_obstacles(canvas, OBSTACLES)
+    COROUTINES.append(coroutine_obstacle)
 
     while row < rows_number:
         draw_frame(canvas, row, column, garbage_frame)
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, garbage_frame, negative=True)
         row += speed
+        obstacle.row += speed
 
 
 async def animate_spaceship(canvas, row, column, frames):
