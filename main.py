@@ -7,11 +7,26 @@ import itertools
 from utils import sleep
 from physics import update_speed
 from obstacles import Obstacle, show_obstacles
+from explosion_frames import EXPLOSION_FRAMES
 
 TIC_TIMEOUT = 0.1
 COROUTINES = []
 OBSTACLES = []
 OBSTACLES_IN_LAST_COLLISIONS = []
+
+
+async def explode(canvas, center_row, center_column):
+    rows, columns = get_frame_size(EXPLOSION_FRAMES[0])
+    corner_row = center_row - rows / 2
+    corner_column = center_column - columns / 2
+
+    curses.beep()
+    for frame in EXPLOSION_FRAMES:
+        draw_frame(canvas, corner_row, corner_column, frame)
+
+        await asyncio.sleep(0)
+        draw_frame(canvas, corner_row, corner_column, frame, negative=True)
+        await asyncio.sleep(0)
 
 
 async def fill_orbit_with_garbage(canvas, width, frames):
@@ -30,8 +45,8 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     row = 0
     obstacle = Obstacle(row, column, garbage_frame_rows, garbage_frame_columns)
     OBSTACLES.append(obstacle)
-    coroutine_obstacle = show_obstacles(canvas, OBSTACLES)
-    COROUTINES.append(coroutine_obstacle)
+    # coroutine_obstacle = show_obstacles(canvas, OBSTACLES)
+    # COROUTINES.append(coroutine_obstacle)
 
     while row < rows_number:
         draw_frame(canvas, row, column, garbage_frame)
@@ -41,9 +56,9 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
         if obstacle in OBSTACLES_IN_LAST_COLLISIONS:
             OBSTACLES.remove(obstacle)
             OBSTACLES_IN_LAST_COLLISIONS.remove(obstacle)
+            await explode(canvas, row, column)
             return
         obstacle.row += speed
-
 
 
 async def animate_spaceship(canvas, row, column, frames):
@@ -132,7 +147,7 @@ def draw(canvas):
         frame_1,
         frame_1,
         frame_2,
-        frame_2
+        frame_2,
     ]
     coroutine_spaceship = animate_spaceship(canvas, height / 2, width / 2, frames)
     COROUTINES.append(coroutine_spaceship)
@@ -141,7 +156,7 @@ def draw(canvas):
     garbage_frames = [
         trash_1,
         trash_2,
-        trash_3
+        trash_3,
     ]
     coroutine_garbage = fill_orbit_with_garbage(canvas, width, garbage_frames)
     COROUTINES.append(coroutine_garbage)
