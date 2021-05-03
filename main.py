@@ -4,39 +4,15 @@ import asyncio
 from random import randint, choice
 from curses_tools import draw_frame, read_controls, get_frame_size
 import itertools
-from utils import sleep
+from utils import sleep, explode, show_gameover
+from upload_frames import read_trash, read_rocket_frames, read_game_over
 from physics import update_speed
-from obstacles import Obstacle, show_obstacles
-from explosion_frames import EXPLOSION_FRAMES
+from obstacles import Obstacle
 
 TIC_TIMEOUT = 0.1
 COROUTINES = []
 OBSTACLES = []
 OBSTACLES_IN_LAST_COLLISIONS = []
-
-
-async def show_gameover(canvas, frame):
-    canvas_rows, canvas_columns = canvas.getmaxyx()
-    frame_rows, frame_columns = get_frame_size(frame)
-    row = (canvas_rows - frame_rows) // 2
-    column = (canvas_columns - frame_columns) // 2
-    while True:
-        draw_frame(canvas, row, column, frame)
-        await asyncio.sleep(0)
-
-
-async def explode(canvas, center_row, center_column):
-    rows, columns = get_frame_size(EXPLOSION_FRAMES[0])
-    corner_row = center_row - rows / 2
-    corner_column = center_column - columns / 2
-
-    curses.beep()
-    for frame in EXPLOSION_FRAMES:
-        draw_frame(canvas, corner_row, corner_column, frame)
-
-        await asyncio.sleep(0)
-        draw_frame(canvas, corner_row, corner_column, frame, negative=True)
-        await asyncio.sleep(0)
 
 
 async def fill_orbit_with_garbage(canvas, width, frames):
@@ -48,15 +24,12 @@ async def fill_orbit_with_garbage(canvas, width, frames):
 
 
 async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
-    """Animate garbage, flying from top to bottom. Сolumn position will stay same, as specified on start."""
     rows_number, columns_number = canvas.getmaxyx()
     garbage_frame_rows, garbage_frame_columns = get_frame_size(garbage_frame)
 
     row = 0
     obstacle = Obstacle(row, column, garbage_frame_rows, garbage_frame_columns)
     OBSTACLES.append(obstacle)
-    # coroutine_obstacle = show_obstacles(canvas, OBSTACLES)
-    # COROUTINES.append(coroutine_obstacle)
 
     while row < rows_number:
         draw_frame(canvas, row, column, garbage_frame)
@@ -78,7 +51,7 @@ async def animate_spaceship(canvas, row, column, frames, game_over_frame):
 
     for frame in itertools.cycle(frames):
         for obstacle in OBSTACLES:
-            if obstacle.has_collision(row,column):
+            if obstacle.has_collision(row, column):
                 COROUTINES.append(show_gameover(canvas, game_over_frame))
         draw_frame(canvas, row, column, frame)
         await asyncio.sleep(0)
@@ -96,21 +69,6 @@ async def animate_spaceship(canvas, row, column, frames, game_over_frame):
             COROUTINES.append(fire(canvas, row, column + 2))
 
 
-async def blink(canvas, row, column, symbol='*'):
-    while True:
-        canvas.addstr(row, column, symbol, curses.A_DIM)
-        await sleep(randint(1, 20))
-
-        canvas.addstr(row, column, symbol)
-        await sleep(randint(1, 20))
-
-        canvas.addstr(row, column, symbol, curses.A_BOLD)
-        await sleep(randint(1, 20))
-
-        canvas.addstr(row, column, symbol)
-        await sleep(randint(1, 20))
-
-
 async def fire(canvas, row, column, rows_speed=-0.3, columns_speed=0):
     while 0 < row:
         for obstacle in OBSTACLES:
@@ -124,28 +82,16 @@ async def fire(canvas, row, column, rows_speed=-0.3, columns_speed=0):
         column += columns_speed
 
 
-def read_rocket_frames():
-    with open('files/rocket_frame_1.txt', 'r') as my_file:
-        frame_1 = my_file.read()
-    with open('files/rocket_frame_2.txt', 'r') as my_file:
-        frame_2 = my_file.read()
-    return frame_1, frame_2
-
-
-def read_trash():
-    with open('files/trash_small.txt', 'r') as my_file:
-        trash_1 = my_file.read()
-    with open('files/trash_large.txt', 'r') as my_file:
-        trash_2 = my_file.read()
-    with open('files/trash_xl.txt', 'r') as my_file:
-        trash_3 = my_file.read()
-    return trash_1, trash_2, trash_3
-
-
-def read_game_over():
-    with open('files/game_over.txt', 'r') as my_file:
-        game_over_frame = my_file.read()
-    return game_over_frame
+async def blink(canvas, row, column, symbol='*'):
+    while True:
+        canvas.addstr(row, column, symbol, curses.A_DIM)
+        await sleep(randint(1, 20))
+        canvas.addstr(row, column, symbol)
+        await sleep(randint(1, 20))
+        canvas.addstr(row, column, symbol, curses.A_BOLD)
+        await sleep(randint(1, 20))
+        canvas.addstr(row, column, symbol)
+        await sleep(randint(1, 20))
 
 
 def draw(canvas):
@@ -161,23 +107,13 @@ def draw(canvas):
         coroutine = blink(canvas, row, column, symbol)
         COROUTINES.append(coroutine)
 
-    frame_1, frame_2 = read_rocket_frames()
-    frames = [
-        frame_1,
-        frame_1,
-        frame_2,
-        frame_2,
-    ]
+    rocket_frames = read_rocket_frames()
     game_over_frame = read_game_over()
-    coroutine_spaceship = animate_spaceship(canvas, height / 2, width / 2, frames, game_over_frame)
+    coroutine_spaceship = animate_spaceship(canvas, height / 2, width / 2, rocket_frames,
+                                            game_over_frame)
     COROUTINES.append(coroutine_spaceship)
 
-    trash_1, trash_2, trash_3 = read_trash()
-    garbage_frames = [
-        trash_1,
-        trash_2,
-        trash_3,
-    ]
+    garbage_frames = read_trash()
     coroutine_garbage = fill_orbit_with_garbage(canvas, width, garbage_frames)
     COROUTINES.append(coroutine_garbage)
 
