@@ -29,8 +29,6 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     row = 0
     obstacle = Obstacle(row, column, garbage_frame_rows, garbage_frame_columns)
     OBSTACLES.append(obstacle)
-    coroutine_obstacle = show_obstacles(canvas, OBSTACLES)
-    COROUTINES.append(coroutine_obstacle)
 
     while row < rows_number:
         draw_frame(canvas, row, column, garbage_frame)
@@ -77,30 +75,12 @@ async def blink(canvas, row, column, symbol='*'):
         await sleep(randint(1, 20))
 
 
-async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
-    """Display animation of gun shot, direction and speed can be specified."""
-
-    row, column = start_row, start_column
-
-    canvas.addstr(round(row), round(column), '*')
-    await asyncio.sleep(0)
-
-    canvas.addstr(round(row), round(column), 'O')
-    await asyncio.sleep(0)
-    canvas.addstr(round(row), round(column), ' ')
-
-    row += rows_speed
-    column += columns_speed
-
-    symbol = '-' if columns_speed else '|'
-
-    rows, columns = canvas.getmaxyx()
-    max_row, max_column = rows - 1, columns - 1
-
-    curses.beep()
-
-    while 0 < row < max_row and 0 < column < max_column:
-        canvas.addstr(round(row), round(column), symbol)
+async def fire(canvas, row, column, rows_speed=-0.3, columns_speed=0):
+    while 0 < row:
+        for obstacle in OBSTACLES:
+            if obstacle.has_collision(row, column):
+                return
+        canvas.addstr(round(row), round(column), '|')
         await asyncio.sleep(0)
         canvas.addstr(round(row), round(column), ' ')
         row += rows_speed
