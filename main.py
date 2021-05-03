@@ -15,6 +15,16 @@ OBSTACLES = []
 OBSTACLES_IN_LAST_COLLISIONS = []
 
 
+async def show_gameover(canvas, frame):
+    canvas_rows, canvas_columns = canvas.getmaxyx()
+    frame_rows, frame_columns = get_frame_size(frame)
+    row = (canvas_rows - frame_rows) // 2
+    column = (canvas_columns - frame_columns) // 2
+    while True:
+        draw_frame(canvas, row, column, frame)
+        await asyncio.sleep(0)
+
+
 async def explode(canvas, center_row, center_column):
     rows, columns = get_frame_size(EXPLOSION_FRAMES[0])
     corner_row = center_row - rows / 2
@@ -61,12 +71,15 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
         obstacle.row += speed
 
 
-async def animate_spaceship(canvas, row, column, frames):
+async def animate_spaceship(canvas, row, column, frames, game_over_frame):
     canvas_rows, canvas_columns = canvas.getmaxyx()
     frame_rows, frame_columns = get_frame_size(frames[0])
     row_speed = column_speed = 0
 
     for frame in itertools.cycle(frames):
+        for obstacle in OBSTACLES:
+            if obstacle.has_collision(row,column):
+                COROUTINES.append(show_gameover(canvas, game_over_frame))
         draw_frame(canvas, row, column, frame)
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, frame, negative=True)
@@ -129,6 +142,12 @@ def read_trash():
     return trash_1, trash_2, trash_3
 
 
+def read_game_over():
+    with open('files/game_over.txt', 'r') as my_file:
+        game_over_frame = my_file.read()
+    return game_over_frame
+
+
 def draw(canvas):
     curses.curs_set(False)
     canvas.nodelay(True)
@@ -149,7 +168,8 @@ def draw(canvas):
         frame_2,
         frame_2,
     ]
-    coroutine_spaceship = animate_spaceship(canvas, height / 2, width / 2, frames)
+    game_over_frame = read_game_over()
+    coroutine_spaceship = animate_spaceship(canvas, height / 2, width / 2, frames, game_over_frame)
     COROUTINES.append(coroutine_spaceship)
 
     trash_1, trash_2, trash_3 = read_trash()
