@@ -11,6 +11,7 @@ from obstacles import Obstacle, show_obstacles
 TIC_TIMEOUT = 0.1
 COROUTINES = []
 OBSTACLES = []
+OBSTACLES_IN_LAST_COLLISIONS = []
 
 
 async def fill_orbit_with_garbage(canvas, width, frames):
@@ -29,13 +30,20 @@ async def fly_garbage(canvas, column, garbage_frame, speed=0.5):
     row = 0
     obstacle = Obstacle(row, column, garbage_frame_rows, garbage_frame_columns)
     OBSTACLES.append(obstacle)
+    coroutine_obstacle = show_obstacles(canvas, OBSTACLES)
+    COROUTINES.append(coroutine_obstacle)
 
     while row < rows_number:
         draw_frame(canvas, row, column, garbage_frame)
         await asyncio.sleep(0)
         draw_frame(canvas, row, column, garbage_frame, negative=True)
         row += speed
+        if obstacle in OBSTACLES_IN_LAST_COLLISIONS:
+            OBSTACLES.remove(obstacle)
+            OBSTACLES_IN_LAST_COLLISIONS.remove(obstacle)
+            return
         obstacle.row += speed
+
 
 
 async def animate_spaceship(canvas, row, column, frames):
@@ -79,6 +87,7 @@ async def fire(canvas, row, column, rows_speed=-0.3, columns_speed=0):
     while 0 < row:
         for obstacle in OBSTACLES:
             if obstacle.has_collision(row, column):
+                OBSTACLES_IN_LAST_COLLISIONS.append(obstacle)
                 return
         canvas.addstr(round(row), round(column), '|')
         await asyncio.sleep(0)
